@@ -1,0 +1,228 @@
+openapi: 3.1.0
+info:
+  title: RBAC Service API
+  version: 1.0.0
+  description: REST API for managing roles, policies, and access control.
+servers:
+  - url: https://api.example.com/rbac
+    description: Production
+
+tags:
+  - name: Roles
+    description: Role management
+  - name: Policies
+    description: Policy definitions for roles
+  - name: Assignments
+    description: Assigning roles to users
+  - name: Access Control
+    description: Permission checks
+
+paths:
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List all roles
+      responses:
+        '200':
+          description: List of roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Role' }
+
+    post:
+      tags: [Roles]
+      summary: Create a new role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewRole'
+      responses:
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+
+  /roles/{roleId}:
+    get:
+      tags: [Roles]
+      summary: Get a specific role
+      parameters:
+        - $ref: '#/components/parameters/RoleId'
+      responses:
+        '200':
+          description: Role found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Role' }
+
+    delete:
+      tags: [Roles]
+      summary: Delete a role
+      parameters:
+        - $ref: '#/components/parameters/RoleId'
+      responses:
+        '204':
+          description: Role deleted
+
+  /roles/{roleId}/policies:
+    get:
+      tags: [Policies]
+      summary: List policies assigned to a role
+      parameters:
+        - $ref: '#/components/parameters/RoleId'
+      responses:
+        '200':
+          description: List of policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Policy' }
+
+    post:
+      tags: [Policies]
+      summary: Attach a policy to a role
+      parameters:
+        - $ref: '#/components/parameters/RoleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPolicy'
+      responses:
+        '201':
+          description: Policy added
+
+  /roles/{roleId}/users:
+    post:
+      tags: [Assignments]
+      summary: Assign a role to a user
+      parameters:
+        - $ref: '#/components/parameters/RoleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: User assigned
+
+  /users/{userId}/roles:
+    get:
+      tags: [Assignments]
+      summary: Get roles assigned to a user
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: List of roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Role' }
+
+  /access/check:
+    post:
+      tags: [Access Control]
+      summary: Check if user has permission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, permission]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                permission:
+                  type: string
+      responses:
+        '200':
+          description: Permission check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed:
+                    type: boolean
+
+components:
+  parameters:
+    RoleId:
+      name: roleId
+      in: path
+      schema:
+        type: string
+        format: uuid
+
+    UserId:
+      name: userId
+      in: path
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Role:
+      type: object
+      properties:
+        role_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+
+    NewRole:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    Policy:
+      type: object
+      properties:
+        policy_id:
+          type: string
+          format: uuid
+        resource:
+          type: string
+        action:
+          type: string
+        effect:
+          type: string
+          enum: [allow, deny]
+
+    NewPolicy:
+      type: object
+      required: [resource, action, effect]
+      properties:
+        resource:
+          type: string
+        action:
+          type: string
+        effect:
+          type: string
+          enum: [allow, deny]
